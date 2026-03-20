@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>კალათა — კვების ოპტიმიზატორი</title>
+  <style>
+    :root{--bg:#0d0f14;--surface:#161a23;--surface2:#1e2433;--border:#2a3347;
+          --accent:#4ade80;--accent2:#22d3ee;--warn:#fb923c;--text:#e8edf5;--muted:#6b7a99}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);
+         min-height:100vh;padding-bottom:60px}
+    header{background:linear-gradient(135deg,#0d1f12,#0a1a2e);border-bottom:1px solid var(--border);
+           padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+    .logo{font-size:1.1rem;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .nav-links a{color:var(--muted);text-decoration:none;font-size:.85rem}
+    .nav-links a:hover{color:var(--accent)}
+    .container{max-width:720px;margin:0 auto;padding:24px 16px}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+          padding:22px;margin-bottom:18px}
+    .card-title{font-size:.72rem;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+                color:var(--accent);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .card-title::after{content:'';flex:1;height:1px;background:var(--border)}
+    .meta{color:var(--muted);font-size:.82rem;margin-bottom:14px}
+    .summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:6px}
+    @media(max-width:500px){.summary-grid{grid-template-columns:repeat(3,1fr)}}
+    .stat-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+              padding:13px 8px;text-align:center}
+    .stat-box .val{font-size:1.15rem;font-weight:700;color:var(--accent);display:block}
+    .stat-box.highlight .val{color:var(--warn);font-size:1.3rem}
+    .stat-box .lbl{font-size:.68rem;color:var(--muted);margin-top:3px;display:block}
+
+    .item-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;
+               padding:16px;margin-bottom:10px}
+    .item-card.removed{opacity:.4;pointer-events:none}
+    .item-name{font-weight:600;font-size:.95rem;margin-bottom:6px}
+    .item-macros{font-size:.73rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+    .grams-editor{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .grams-label{font-size:.78rem;color:var(--muted)}
+    .grams-val{font-size:.92rem;font-weight:700;color:var(--accent)}
+    .remaining-val{font-size:.82rem;color:var(--warn)}
+    .cost-val{font-size:.78rem;color:var(--muted)}
+    input.gram-input{width:80px;background:var(--bg);border:1px solid var(--border);
+                     border-radius:8px;padding:6px 10px;color:var(--text);font-size:.88rem;
+                     -moz-appearance:textfield}
+    input.gram-input::-webkit-outer-spin-button,
+    input.gram-input::-webkit-inner-spin-button{-webkit-appearance:none}
+    input.gram-input:focus{outline:none;border-color:var(--accent)}
+    .btn-update{padding:6px 14px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);
+                border-radius:8px;color:var(--accent);font-size:.78rem;cursor:pointer;transition:all .15s}
+    .btn-update:hover{background:rgba(74,222,128,.22)}
+    .btn-del-item{padding:6px 12px;background:transparent;border:1px solid var(--border);
+                  border-radius:8px;color:var(--muted);font-size:.78rem;cursor:pointer;transition:all .15s}
+    .btn-del-item:hover{border-color:#f87171;color:#f87171}
+    .pkg-info{font-size:.75rem;color:var(--muted);margin-top:6px}
+  </style>
+</head>
+<body>
+<header>
+  <span class="logo">🥗 კვების ოპტიმიზატორი</span>
+  <div class="nav-links" style="display:flex;gap:16px">
+    <a href="{{ url_for('main.history') }}">← ისტორია</a>
+    <a href="{{ url_for('main.app_page') }}">⚡ ახალი კალათა</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="card">
+    <div class="card-title">📦 {{ basket.name or 'კალათა #' ~ basket.id }}</div>
+    <p class="meta">{{ basket.created_at.strftime('%d %B %Y · %H:%M') }} ·
+      {% if basket.mode == 'soft' %}ჭკვიანი რეჟიმი{% else %}მაკრო რეჟიმი{% endif %}</p>
+
+    <div class="summary-grid">
+      <div class="stat-box highlight"><span class="val">₾{{ '%.2f'|format(basket.total_cost) }}</span><span class="lbl">ღირებულება</span></div>
+      <div class="stat-box"><span class="val">{{ basket.total_calories|int }}</span><span class="lbl">კკალ</span></div>
+      <div class="stat-box"><span class="val">{{ basket.total_protein|int }}გ</span><span class="lbl">ცილა</span></div>
+      <div class="stat-box"><span class="val">{{ basket.total_carbs|int }}გ</span><span class="lbl">ნახშ.</span></div>
+      <div class="stat-box"><span class="val">{{ basket.total_fat|int }}გ</span><span class="lbl">ცხიმი</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🛒 პროდუქტები</div>
+
+    {% for item in basket.items %}
+    <div class="item-card" id="item-{{ item.id }}">
+      <div class="item-name">{{ item.product_name }}</div>
+      <div class="item-macros">
+        <span>🔥 {{ item.calories|round(1) }} კკალ</span>
+        <span>💪 {{ item.protein|round(1) }}გ ცილა</span>
+        <span>🌾 {{ item.carbs|round(1) }}გ ნახშ.</span>
+        <span>🥑 {{ item.fat|round(1) }}გ ცხიმი</span>
+      </div>
+      <div class="grams-editor">
+        <span class="grams-label">მიირთვი:</span>
+        <input class="gram-input" type="number"
+               id="consumed-{{ item.id }}"
+               value="{{ item.recommended_grams|int }}"
+               min="0" max="{{ (item.recommended_grams + item.remaining_grams)|int }}">
+        <button class="btn-update" onclick="updateItem({{ item.id }}, {{ basket.id }})">განახლება</button>
+        <button class="btn-del-item" onclick="deleteItem({{ item.id }}, {{ basket.id }})">✕ ამოღება</button>
+      </div>
+      <div class="pkg-info">
+        📦 {{ item.units }}×{{ item.pkg_label }} ·
+        <span class="remaining-val" id="rem-{{ item.id }}">დარჩება: {{ item.remaining_grams|int }}გ</span> ·
+        <span class="cost-val">₾{{ '%.2f'|format(item.cost) }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+async function updateItem(itemId, basketId){
+  const grams = parseFloat(document.getElementById('consumed-'+itemId).value);
+  const r = await fetch(`/basket/${basketId}/item/${itemId}/update`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({consumed_grams: grams})
+  });
+  const d = await r.json();
+  if(d.ok){
+    document.getElementById('rem-'+itemId).textContent = 'დარჩება: '+Math.round(d.remaining)+'გ';
+  }
+}
+async function deleteItem(itemId, basketId){
+  if(!confirm('ამოვიღოთ ეს პროდუქტი კალათიდან?')) return;
+  const r = await fetch(`/basket/${basketId}/item/${itemId}/delete`,{method:'POST'});
+  if((await r.json()).ok){
+    const el = document.getElementById('item-'+itemId);
+    el.classList.add('removed');
+    setTimeout(()=>el.remove(), 400);
+  }
+}
+</script>
+</body>
+</html>

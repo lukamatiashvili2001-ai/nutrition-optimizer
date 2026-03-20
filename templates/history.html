@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>ისტორია — კვების ოპტიმიზატორი</title>
+  <style>
+    :root{--bg:#0d0f14;--surface:#161a23;--surface2:#1e2433;--border:#2a3347;
+          --accent:#4ade80;--accent2:#22d3ee;--warn:#fb923c;--text:#e8edf5;--muted:#6b7a99}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:60px}
+    header{background:linear-gradient(135deg,#0d1f12,#0a1a2e);border-bottom:1px solid var(--border);
+           padding:16px 20px;display:flex;align-items:center;justify-content:space-between}
+    .logo{font-size:1.1rem;font-weight:700;background:linear-gradient(90deg,var(--accent),var(--accent2));
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .nav-links{display:flex;gap:16px}
+    .nav-links a{color:var(--muted);text-decoration:none;font-size:.85rem}
+    .nav-links a:hover{color:var(--accent)}
+    .container{max-width:720px;margin:0 auto;padding:24px 16px}
+    h2{font-size:1.3rem;font-weight:700;margin-bottom:20px}
+    .empty{text-align:center;color:var(--muted);padding:60px 20px;font-size:.95rem}
+    .basket-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+                 padding:18px 20px;margin-bottom:14px;display:flex;
+                 align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .basket-info .date{font-size:.78rem;color:var(--muted);margin-bottom:4px}
+    .basket-info .bname{font-weight:600;font-size:.98rem;margin-bottom:6px}
+    .basket-stats{display:flex;gap:12px;flex-wrap:wrap}
+    .bstat{font-size:.77rem;color:var(--muted)}
+    .bstat strong{color:var(--text)}
+    .btn-view{padding:8px 18px;background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);
+              border-radius:9px;color:var(--accent);font-size:.83rem;font-weight:600;
+              text-decoration:none;transition:all .15s}
+    .btn-view:hover{background:rgba(74,222,128,.2)}
+    .btn-del{padding:8px 12px;background:transparent;border:1px solid var(--border);
+             border-radius:9px;color:var(--muted);font-size:.83rem;cursor:pointer;transition:all .15s}
+    .btn-del:hover{border-color:#f87171;color:#f87171}
+  </style>
+</head>
+<body>
+<header>
+  <span class="logo">🥗 კვების ოპტიმიზატორი</span>
+  <div class="nav-links">
+    <a href="{{ url_for('main.app_page') }}">⚡ ახალი კალათა</a>
+    <a href="{{ url_for('auth.logout') }}">გასვლა</a>
+  </div>
+</header>
+
+<div class="container">
+  <h2>📋 შენახული კალათები</h2>
+
+  {% if not baskets %}
+    <div class="empty">ჯერ კალათა არ გაქვს შენახული.<br>
+      <a href="{{ url_for('main.app_page') }}" style="color:var(--accent)">პირველი კალათის გენერაცია →</a>
+    </div>
+  {% else %}
+    {% for b in baskets %}
+    <div class="basket-card" id="bcard-{{ b.id }}">
+      <div class="basket-info">
+        <div class="date">{{ b.created_at.strftime('%d %B %Y · %H:%M') }}</div>
+        <div class="bname">{{ b.name or 'კალათა #' ~ b.id }}</div>
+        <div class="basket-stats">
+          <span class="bstat">💰 <strong>₾{{ '%.2f'|format(b.total_cost) }}</strong></span>
+          <span class="bstat">🔥 <strong>{{ b.total_calories|int }}</strong> კკალ</span>
+          <span class="bstat">💪 <strong>{{ b.total_protein|int }}გ</strong> ცილა</span>
+          <span class="bstat">🛒 <strong>{{ b.items|length }}</strong> პროდუქტი</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <a href="{{ url_for('main.basket_detail', basket_id=b.id) }}" class="btn-view">ნახვა</a>
+        <button class="btn-del" onclick="deleteBasket({{ b.id }})">🗑</button>
+      </div>
+    </div>
+    {% endfor %}
+  {% endif %}
+</div>
+
+<script>
+async function deleteBasket(id){
+  if(!confirm('კალათა წავშალოთ?')) return;
+  const r = await fetch(`/basket/${id}/delete`,{method:'POST'});
+  if((await r.json()).ok){
+    document.getElementById('bcard-'+id).remove();
+  }
+}
+</script>
+</body>
+</html>
